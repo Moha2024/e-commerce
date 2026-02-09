@@ -85,3 +85,22 @@ func CreateProductHandler(w http.ResponseWriter, r *http.Request){
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(newProduct)
 }
+
+func DeleteProductHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid id", http.StatusBadRequest)
+		return
+	}
+
+	for i, product := range domain.Products{
+		if product.ID == id{
+			domain.Products = append(domain.Products[:i], domain.Products[i+1:]...)
+			
+			w.WriteHeader(http.StatusNoContent)
+        	return
+		}
+	}
+	http.Error(w, "Product not found", http.StatusNotFound)
+}
