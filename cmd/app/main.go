@@ -3,7 +3,9 @@ package main
 import (
 	"e-commerce/internal/config"
 	"e-commerce/internal/database"
+	"e-commerce/internal/rest/handlers"
 	"log"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,14 +25,13 @@ func main() {
 	var router *gin.Engine = gin.Default()
 
 	router.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "Shop API is running",
-			"status": "success",
+		c.JSON(http.StatusOK, gin.H{
+			"message":  "Shop API is running",
+			"status":   "success",
 			"database": "connected",
 		})
 	})
-
-
+	router.POST("/products", handlers.CreateProductHandler(pool))
 
 	// http.HandleFunc("GET /products", rest.GetProductsHandler)
 	// http.HandleFunc("GET /products/{id}", rest.GetProductHandler)

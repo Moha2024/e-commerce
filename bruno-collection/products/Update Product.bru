@@ -1,0 +1,22 @@
+meta {
+  name: Update Product
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/products/{{productId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "Smartphone Pro",
+    "price": 799.99
+  }
+}
