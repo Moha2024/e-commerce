@@ -1,0 +1,5 @@
+docker exec -it shop_db psql -U myuser -d e_commerce_db - зайти в PostgreSQL в Docker
+docker-compose down -v
+docker-compose up -d
+migrate -path migrations -database "postgres://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" up
+migrate -path migrations -database "postgres://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" down

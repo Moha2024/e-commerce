@@ -32,7 +32,8 @@ func main() {
 		})
 	})
 	router.POST("/products", handlers.CreateProductHandler(pool))
-
+	router.GET("/products/:id", handlers.GetProductByIdHandler(pool))
+	router.GET("/products", handlers.GetAllProductsHandler(pool))
 	// http.HandleFunc("GET /products", rest.GetProductsHandler)
 	// http.HandleFunc("GET /products/{id}", rest.GetProductHandler)
 	// http.HandleFunc("PUT /products/{id}", rest.UpdateProductsHandler)

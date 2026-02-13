@@ -2,9 +2,12 @@ package handlers
 
 import (
 	"e-commerce/internal/repository"
+	"errors"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -16,18 +19,67 @@ type CreateProductRequest struct {
 func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var input CreateProductRequest
+<<<<<<< Updated upstream
 
 		if err := c.ShouldBindJSON(&input); err != nil { // подставляет совпадающие поля JSON в ProductRequest
+=======
+		if err := c.ShouldBindJSON(&input); err != nil {
+>>>>>>> Stashed changes
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
 		product, err := repository.CreateProduct(pool, input.Name, input.Price)
 		if err != nil {
+			if errors.Is(err, repository.ErrAlreadyExists) {
+				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+				return
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusCreated, product)
+	}
+}
+
+func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
+		_, err := uuid.Parse(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+			return
+		}
+
+		product, err := repository.GetProductById(pool, idStr)
+		if err != nil {
+			if err.Error() == "product does not exist" {
+				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			return
+		}
+
+		c.JSON(http.StatusOK, product)
+	}
+}
+
+func GetAllProductsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		log.Println("--- Сработал хендлер ВСЕХ товаров ---")
+		products, err := repository.GetAllProducts(pool)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, products)
+			return
+		}
+
+		if products == nil {
+			c.JSON(http.StatusOK, products)
+			return
+		}
+
+		c.JSON(http.StatusOK, products)
 	}
 }
 
