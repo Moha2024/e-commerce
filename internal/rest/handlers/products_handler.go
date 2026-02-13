@@ -8,16 +8,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type ProductRequest struct {
+type CreateProductRequest struct {
 	Name  string  `json:"name" binding:"required"`
-	Price float64 `json:"price"`
+	Price float64 `json:"price" binding:"required"`
 }
 
 func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var input ProductRequest
+		var input CreateProductRequest
 
-		if err := c.ShouldBindJSON(&input); err != nil {
+		if err := c.ShouldBindJSON(&input); err != nil { // подставляет совпадающие поля JSON в ProductRequest
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
