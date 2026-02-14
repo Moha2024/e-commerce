@@ -3,7 +3,6 @@ package handlers
 import (
 	"e-commerce/internal/repository"
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,19 +11,25 @@ import (
 )
 
 type CreateProductRequest struct {
-	Name  string  `json:"name" binding:"required"`
-	Price float64 `json:"price" binding:"required"`
+	Name  string  `json:"name" binding:"required,min=2"`
+	Price float64 `json:"price" binding:"required,gt=0"`
+}
+
+type PutProductRequest struct {
+	Name  string  `json:"name" binding:"required,min=2"`
+	Price float64 `json:"price" binding:"required,gt=0"`
+}
+
+type PatchProductRequest struct {
+	Name  *string  `json:"name" binding:"omitempty,min=2"`
+	Price *float64 `json:"price" binding:"omitempty,gt=0"`
 }
 
 func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var input CreateProductRequest
-<<<<<<< Updated upstream
 
 		if err := c.ShouldBindJSON(&input); err != nil { // подставляет совпадающие поля JSON в ProductRequest
-=======
-		if err := c.ShouldBindJSON(&input); err != nil {
->>>>>>> Stashed changes
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -53,7 +58,102 @@ func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 		product, err := repository.GetProductById(pool, idStr)
 		if err != nil {
-			if err.Error() == "product does not exist" {
+			if errors.Is(err, repository.ErrDoesNotExist) {
+				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			return
+		}
+
+		c.JSON(http.StatusOK, product)
+	}
+}
+
+func DeleteProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
+		_, err := uuid.Parse(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+			return
+		}
+
+		err = repository.DeleteProductById(pool, idStr)
+		if err != nil {
+			if errors.Is(err, repository.ErrDoesNotExist) {
+				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			return
+		}
+
+		c.Status(http.StatusNoContent)
+	}
+}
+
+func PatchProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
+		_, err := uuid.Parse(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+			return
+		}
+
+		var input PatchProductRequest
+		err = c.ShouldBindJSON(&input)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed: " + err.Error()})
+			return
+		}
+
+		if input.Name == nil && input.Price == nil {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "at least one field is required"})
+			return
+		}
+
+		updates := make(map[string]interface{})
+		if input.Name != nil {
+			updates["name"] = *input.Name
+		}
+		if input.Price != nil {
+			updates["price"] = *input.Price
+		}
+
+		product, err := repository.PatchProduct(pool, idStr, updates)
+		if err != nil {
+			if errors.Is(err, repository.ErrDoesNotExist) {
+				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			return
+		}
+		c.JSON(http.StatusOK, product)
+	}
+}
+
+func UpdateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
+		_, err := uuid.Parse(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid UUID format"})
+			return
+		}
+
+		var input PutProductRequest
+		err = c.ShouldBindJSON(&input)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed: " + err.Error()})
+			return
+		}
+
+		product, err := repository.UpdateProduct(pool, idStr, input.Name, input.Price)
+		if err != nil {
+			if errors.Is(err, repository.ErrDoesNotExist) {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 				return
 			}
@@ -67,7 +167,6 @@ func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func GetAllProductsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		log.Println("--- Сработал хендлер ВСЕХ товаров ---")
 		products, err := repository.GetAllProducts(pool)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, products)
@@ -82,98 +181,3 @@ func GetAllProductsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		c.JSON(http.StatusOK, products)
 	}
 }
-
-// func GetProductsHandler(w http.ResponseWriter, r *http.Request) {
-// 	// Устанавливаем заголовок, что отправляем JSON
-// 	w.Header().Set("Content-Type", "application/json")
-
-// 	json.NewEncoder(w).Encode(domain.Products)
-// }
-
-// func GetProductHandler(w http.ResponseWriter, r *http.Request) {
-// 	idStr := r.PathValue("id")
-// 	id, err := strconv.Atoi(idStr)
-// 	if err != nil {
-// 		http.Error(w, "Invalid ID", http.StatusBadRequest)
-// 		return
-// 	}
-// 	for _, product := range domain.Products {
-// 		if product.ID == id {
-// 			w.Header().Set("Content-Type", "application/json")
-// 			json.NewEncoder(w).Encode(product)
-// 			return
-// 		}
-// 	}
-// 	http.Error(w, "Product not found", http.StatusNotFound)
-// }
-
-// func UpdateProductsHandler(w http.ResponseWriter, r *http.Request) {
-// 	idStr := r.PathValue("id")
-// 	id, err := strconv.Atoi(idStr)
-// 	if err != nil {
-// 		http.Error(w, "Invalid ID", http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	var input ProductRequest
-// 	err = json.NewDecoder(r.Body).Decode(&input)
-// 	if err != nil {
-// 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	defer r.Body.Close()
-
-// 	for i, product := range domain.Products {
-// 		if product.ID == id {
-// 			domain.Products[i].Name = input.Name
-// 			domain.Products[i].Price = input.Price
-
-// 			w.Header().Set("Content-Type", "application/json")
-// 			json.NewEncoder(w).Encode(domain.Products[i])
-// 			return
-// 		}
-// 	}
-
-// 	http.Error(w, "Product not found", http.StatusNotFound)
-// }
-
-// // func CreateProductHandler(w http.ResponseWriter, r *http.Request) {
-// // 	var input ProductRequest
-// // 	err := json.NewDecoder(r.Body).Decode(&input)
-// // 	if err != nil {
-// // 		http.Error(w, "Invalid json", http.StatusBadRequest)
-// // 		return
-// // 	}
-// // 	defer r.Body.Close()
-
-// // 	newProduct := domain.Product{
-// // 		ID:    domain.Products[len(domain.Products)-1].ID + 1,
-// // 		Name:  input.Name,
-// // 		Price: input.Price,
-// // 	}
-
-// // 	domain.Products = append(domain.Products, newProduct)
-// // 	w.Header().Set("Content-Type", "application/json")
-// // 	w.WriteHeader(http.StatusCreated)
-// // 	json.NewEncoder(w).Encode(newProduct)
-// // }
-
-// func DeleteProductHandler(w http.ResponseWriter, r *http.Request) {
-// 	idStr := r.PathValue("id")
-// 	id, err := strconv.Atoi(idStr)
-// 	if err != nil {
-// 		http.Error(w, "Invalid id", http.StatusBadRequest)
-// 		return
-// 	}
-
-// 	for i, product := range domain.Products {
-// 		if product.ID == id {
-// 			domain.Products = append(domain.Products[:i], domain.Products[i+1:]...)
-
-// 			w.WriteHeader(http.StatusNoContent)
-// 			return
-// 		}
-// 	}
-// 	http.Error(w, "Product not found", http.StatusNotFound)
-// }
