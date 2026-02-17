@@ -37,5 +37,10 @@ func main() {
 	router.PUT("/products/:id", handlers.UpdateProductHandler(pool))
 	router.PATCH("/products/:id", handlers.PatchProductHandler(pool))
 	router.DELETE("/products/:id", handlers.DeleteProductByIdHandler(pool))
+
+	router.POST("/auth/register", handlers.CreateUserHandler(pool))
+	router.GET("/users/id/:id", handlers.GetUserByIdHandler(pool))
+	router.GET("/users/email/:email", handlers.GetUserByEmailHandler(pool))
+
 	router.Run(":" + cfg.Port)
 }

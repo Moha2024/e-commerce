@@ -9,7 +9,7 @@ import (
 )
 
 type Config struct {
-	DSN string
+	DSN  string
 	Port string
 }
 
@@ -29,12 +29,12 @@ func Load() (*Config, error) {
 	)
 
 	port := os.Getenv("SERVER_PORT")
-	if port == ""{
+	if port == "" {
 		port = "8080"
 	}
 
 	return &Config{
-		DSN: dsn,
+		DSN:  dsn,
 		Port: port,
 	}, nil
 }

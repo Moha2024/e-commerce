@@ -3,3 +3,4 @@ docker-compose down -v
 docker-compose up -d
 migrate -path migrations -database "postgres://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" up
 migrate -path migrations -database "postgres://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}?sslmode=disable" down
+migrate -path migrations -database "postgres://myuser:mypassword@localhost:5432/e_commerce_db?sslmode=disable" force 1
