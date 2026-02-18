@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"e-commerce/internal/config"
 	"e-commerce/internal/domain/models"
 	"e-commerce/internal/repository"
 	"fmt"
@@ -15,6 +16,33 @@ import (
 type RegisterRequest struct {
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
+func LoginUserHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc{
+	return func(ctx *gin.Context) {
+		var loginRequest LoginRequest
+		if err := ctx.BindJSON(&loginRequest); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		user, err := repository.GetUserByEmail(pool, loginRequest.Email)
+		if err != nil {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+			return
+		}
+
+		bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password))
+	}
 }
 
 func CreateUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
@@ -39,7 +67,7 @@ func CreateUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 		user := &models.User{
 			Email:         input.Email,
-			Password_hash: string(password_hash),
+			Password: string(password_hash),
 		}
 
 		createdUser, err := repository.CreateUser(pool, user)

@@ -11,6 +11,7 @@ import (
 type Config struct {
 	DSN  string
 	Port string
+	JWTSecret string
 }
 
 func Load() (*Config, error) {
@@ -36,5 +37,6 @@ func Load() (*Config, error) {
 	return &Config{
 		DSN:  dsn,
 		Port: port,
+		JWTSecret: os.Getenv("JWT_SECRET"),
 	}, nil
 }

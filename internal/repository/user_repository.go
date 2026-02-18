@@ -15,14 +15,13 @@ func CreateUser(pool *pgxpool.Pool, user *models.User) (*models.User, error) {
 	query := `
 		INSERT INTO users (email, password_hash)
 		VALUES ($1, $2)
-		RETURNING id, email, password_hash, created_at
+		RETURNING id, email, created_at
 	`
 	var userBack models.User
 
-	err := pool.QueryRow(ctx, query, user.Email, user.Password_hash).Scan(
+	err := pool.QueryRow(ctx, query, user.Email, user.Password).Scan(
 		&userBack.ID,
 		&userBack.Email,
-		&userBack.Password_hash,
 		&userBack.CreatedAt,
 	)
 
@@ -38,7 +37,7 @@ func GetUserByEmail(pool *pgxpool.Pool, email string) (*models.User, error) {
 	defer cancel()
 
 	query := `
-	SELECT id, email, password_hash, created_at
+	SELECT id, email, password_hash,  created_at
 	FROM users
 	WHERE email = $1
 	`
@@ -48,7 +47,7 @@ func GetUserByEmail(pool *pgxpool.Pool, email string) (*models.User, error) {
 	err := pool.QueryRow(ctx, query, email).Scan(
 		&userBack.ID,
 		&userBack.Email,
-		&userBack.Password_hash,
+		&userBack.Password,
 		&userBack.CreatedAt,
 	)
 	if err != nil {
@@ -63,7 +62,7 @@ func GetUserById(pool *pgxpool.Pool, id string) (*models.User, error) {
 	defer cancel()
 
 	query := `
-	SELECT id, email, password_hash, created_at
+	SELECT id, email, created_at
 	FROM users
 	WHERE id = $1
 	`
@@ -73,7 +72,6 @@ func GetUserById(pool *pgxpool.Pool, id string) (*models.User, error) {
 	err := pool.QueryRow(ctx, query, id).Scan(
 		&userBack.ID,
 		&userBack.Email,
-		&userBack.Password_hash,
 		&userBack.CreatedAt,
 	)
 	if err != nil {
