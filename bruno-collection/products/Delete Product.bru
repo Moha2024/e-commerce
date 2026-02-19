@@ -1,11 +1,19 @@
 meta {
   name: Delete Product
   type: http
-  seq: 5
+  seq: 6
 }
 
 delete {
-  url: {{baseUrl}}/products/{{productId}}
+  url: {{baseUrl}}/products/:id
   body: none
   auth: none
+}
+
+params:path {
+  id:
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
 }

@@ -6,8 +6,11 @@ import (
 	"e-commerce/internal/repository"
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
@@ -27,6 +30,7 @@ type LoginResponse struct {
 	Token string `json:"token"`
 }
 
+
 func LoginUserHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc{
 	return func(ctx *gin.Context) {
 		var loginRequest LoginRequest
@@ -41,7 +45,26 @@ func LoginUserHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc{
 			return
 		}
 
-		bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password))
+		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password))
+		if err != nil {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+			return
+		}
+		
+		claims := jwt.MapClaims{
+			"user_id": user.ID,
+			"email": user.Email,
+			"exp":time.Now().Add(24*time.Hour).Unix(),
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+		tokenString, err := token.SignedString([]byte(cfg.JWTSecret))
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error":"Failed to generate token: " + err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusOK, LoginResponse{Token: tokenString})
 	}
 }
 
@@ -72,7 +95,7 @@ func CreateUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 		createdUser, err := repository.CreateUser(pool, user)
 		if err != nil {
-			if err.Error() != "" {
+			if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
 				fmt.Println(err)
 				ctx.JSON(http.StatusBadRequest, gin.H{"error": "Email already registered"})
 				return

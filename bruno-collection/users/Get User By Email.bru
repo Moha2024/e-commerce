@@ -1,13 +1,17 @@
 meta {
-  name: Get All Products
+  name: Get User By Email
   type: http
-  seq: 2
+  seq: 3
 }
 
 get {
-  url: {{baseUrl}}/products
+  url: {{baseUrl}}/users/email/:email
   body: none
   auth: none
+}
+
+params:path {
+  email:
 }
 
 headers {

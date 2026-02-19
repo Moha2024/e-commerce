@@ -27,6 +27,15 @@ type PatchProductRequest struct {
 
 func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+
+		if !exists{
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+
 		var input CreateProductRequest
 
 		if err := c.ShouldBindJSON(&input); err != nil { // подставляет совпадающие поля JSON в ProductRequest
@@ -34,7 +43,7 @@ func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		product, err := repository.CreateProduct(pool, input.Name, input.Price)
+		product, err := repository.CreateProduct(pool, input.Name, input.Price, userID)
 		if err != nil {
 			if errors.Is(err, repository.ErrAlreadyExists) {
 				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -49,6 +58,15 @@ func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+
+		if !exists{
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+
 		idStr := c.Param("id")
 		_, err := uuid.Parse(idStr)
 		if err != nil {
@@ -56,7 +74,7 @@ func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		product, err := repository.GetProductById(pool, idStr)
+		product, err := repository.GetProductById(pool, idStr, userID)
 		if err != nil {
 			if errors.Is(err, repository.ErrDoesNotExist) {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -72,6 +90,15 @@ func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func DeleteProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+
+		if !exists{
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+
 		idStr := c.Param("id")
 		_, err := uuid.Parse(idStr)
 		if err != nil {
@@ -79,7 +106,7 @@ func DeleteProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		err = repository.DeleteProductById(pool, idStr)
+		err = repository.DeleteProductById(pool, idStr, userID)
 		if err != nil {
 			if errors.Is(err, repository.ErrDoesNotExist) {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -95,6 +122,15 @@ func DeleteProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func PatchProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+
+		if !exists{
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+
 		idStr := c.Param("id")
 		_, err := uuid.Parse(idStr)
 		if err != nil {
@@ -122,7 +158,7 @@ func PatchProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			updates["price"] = *input.Price
 		}
 
-		product, err := repository.PatchProduct(pool, idStr, updates)
+		product, err := repository.PatchProduct(pool, idStr, userID, updates)
 		if err != nil {
 			if errors.Is(err, repository.ErrDoesNotExist) {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -137,6 +173,15 @@ func PatchProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func UpdateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userIDInterface, exists := c.Get("user_id")
+
+		if !exists{
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+		
 		idStr := c.Param("id")
 		_, err := uuid.Parse(idStr)
 		if err != nil {
@@ -151,7 +196,7 @@ func UpdateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		product, err := repository.UpdateProduct(pool, idStr, input.Name, input.Price)
+		product, err := repository.UpdateProduct(pool, idStr, userID, input.Name, input.Price)
 		if err != nil {
 			if errors.Is(err, repository.ErrDoesNotExist) {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -167,7 +212,16 @@ func UpdateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 func GetAllProductsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		products, err := repository.GetAllProducts(pool)
+		userIDInterface, exists := c.Get("user_id")
+
+		if !exists{
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			return
+		}
+
+		userID := userIDInterface.(string)
+
+		products, err := repository.GetAllProducts(pool, userID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, products)
 			return

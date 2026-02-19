@@ -3,6 +3,7 @@ package main
 import (
 	"e-commerce/internal/config"
 	"e-commerce/internal/database"
+	"e-commerce/internal/middleware"
 	"e-commerce/internal/rest/handlers"
 	"log"
 	"net/http"
@@ -31,16 +32,22 @@ func main() {
 			"database": "connected",
 		})
 	})
-	router.POST("/products", handlers.CreateProductHandler(pool))
-	router.GET("/products/:id", handlers.GetProductByIdHandler(pool))
-	router.GET("/products", handlers.GetAllProductsHandler(pool))
-	router.PUT("/products/:id", handlers.UpdateProductHandler(pool))
-	router.PATCH("/products/:id", handlers.PatchProductHandler(pool))
-	router.DELETE("/products/:id", handlers.DeleteProductByIdHandler(pool))
-
+	
 	router.POST("/auth/register", handlers.CreateUserHandler(pool))
-	router.GET("/users/id/:id", handlers.GetUserByIdHandler(pool))
-	router.GET("/users/email/:email", handlers.GetUserByEmailHandler(pool))
+	router.POST("/auth/login", handlers.LoginUserHandler(pool, cfg))
+
+	protected := router.Group("/products")
+	protected.Use(middleware.AuthMiddleware(cfg))
+
+	protected.POST("", handlers.CreateProductHandler(pool))
+	protected.GET("/:id", handlers.GetProductByIdHandler(pool))
+	protected.GET("", handlers.GetAllProductsHandler(pool))
+	protected.PUT("/:id", handlers.UpdateProductHandler(pool))
+	protected.PATCH("/:id", handlers.PatchProductHandler(pool))
+	protected.DELETE("/:id", handlers.DeleteProductByIdHandler(pool))
+
+	router.GET("/users/id/:id", handlers.GetUserByIdHandler(pool)).Use(middleware.AuthMiddleware(cfg))
+	router.GET("/users/email/:email", handlers.GetUserByEmailHandler(pool)).Use(middleware.AuthMiddleware(cfg))
 
 	router.Run(":" + cfg.Port)
 }

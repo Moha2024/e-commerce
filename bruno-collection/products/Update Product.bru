@@ -5,13 +5,18 @@ meta {
 }
 
 put {
-  url: {{baseUrl}}/products/{{productId}}
+  url: {{baseUrl}}/products/:id
   body: json
   auth: none
 }
 
+params:path {
+  id:
+}
+
 headers {
   Content-Type: application/json
+  Authorization: Bearer {{access_token}}
 }
 
 body:json {

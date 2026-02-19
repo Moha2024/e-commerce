@@ -16,16 +16,16 @@ import (
 var ErrAlreadyExists = errors.New("product with this name and price already exists")
 var ErrDoesNotExist = errors.New("product with this id does not exist")
 
-func DeleteProductById(pool *pgxpool.Pool, id string) error {
+func DeleteProductById(pool *pgxpool.Pool, productID string, userID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	query := `
 	DELETE FROM products
-	WHERE id = $1
+	WHERE id = $1 AND user_id = $2
 	`
 
-	result, err := pool.Exec(ctx, query, id)
+	result, err := pool.Exec(ctx, query, productID, userID)
 	if err != nil {
 		return err
 	}
@@ -37,19 +37,19 @@ func DeleteProductById(pool *pgxpool.Pool, id string) error {
 	return nil
 }
 
-func CreateProduct(pool *pgxpool.Pool, name string, price float64) (*models.Product, error) {
+func CreateProduct(pool *pgxpool.Pool, name string, price float64, userID string) (*models.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	query := `
-		INSERT INTO products (name, price)
-		VALUES ($1, $2)
+		INSERT INTO products (name, price, user_id)
+		VALUES ($1, $2, $3)
 		RETURNING id, name, price, user_id, created_at, updated_at
 	`
 
 	var product models.Product
 
-	err := pool.QueryRow(ctx, query, name, price).Scan(
+	err := pool.QueryRow(ctx, query, name, price, userID).Scan(
 		&product.ID,
 		&product.Name,
 		&product.Price,
@@ -70,18 +70,18 @@ func CreateProduct(pool *pgxpool.Pool, name string, price float64) (*models.Prod
 	return &product, nil
 }
 
-func UpdateProduct(pool *pgxpool.Pool, id string, name string, price float64) (*models.Product, error) {
+func UpdateProduct(pool *pgxpool.Pool, productID string, userID string, name string, price float64) (*models.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	query := `
 	UPDATE products 
 	SET name = $1, price = $2
-	WHERE id = $3
+	WHERE id = $3 AND user_id = $4
 	RETURNING id, name, price, user_id, created_at, updated_at
 	`
 	var product models.Product
-	err := pool.QueryRow(ctx, query, name, price, id).Scan(
+	err := pool.QueryRow(ctx, query, name, price, productID, userID).Scan(
 		&product.ID,
 		&product.Name,
 		&product.Price,
@@ -98,7 +98,7 @@ func UpdateProduct(pool *pgxpool.Pool, id string, name string, price float64) (*
 	return &product, nil
 }
 
-func PatchProduct(pool *pgxpool.Pool, id string, updates map[string]interface{}) (*models.Product, error) {
+func PatchProduct(pool *pgxpool.Pool, productID string, userID string, updates map[string]interface{}) (*models.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -114,8 +114,9 @@ func PatchProduct(pool *pgxpool.Pool, id string, updates map[string]interface{})
 	}
 
 	setClause := strings.Join(queryParts, ", ")
-	query := fmt.Sprintf("UPDATE products SET %s WHERE id = $%d RETURNING id, name, price, user_id, created_at, updated_at", setClause, placeholderNumber)
-	dataValues = append(dataValues, id)
+	query := fmt.Sprintf("UPDATE products SET %s WHERE id = $%d AND user_id = %d RETURNING id, name, price, user_id, created_at, updated_at", setClause, placeholderNumber, placeholderNumber+1)
+	dataValues = append(dataValues, productID)
+	dataValues = append(dataValues, userID)
 
 	var product models.Product
 	err := pool.QueryRow(ctx, query, dataValues...).Scan(
@@ -136,17 +137,17 @@ func PatchProduct(pool *pgxpool.Pool, id string, updates map[string]interface{})
 	return &product, nil
 }
 
-func GetProductById(pool *pgxpool.Pool, id string) (*models.Product, error) {
+func GetProductById(pool *pgxpool.Pool, id string, userID string) (*models.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	query :=
 		`SELECT id, name, price, user_id, created_at, updated_at 
-	 FROM products WHERE id = $1`
+	 FROM products WHERE id = $1 AND user_id = $2`
 
 	var product models.Product
 
-	err := pool.QueryRow(ctx, query, id).Scan(
+	err := pool.QueryRow(ctx, query, id, userID).Scan(
 		&product.ID,
 		&product.Name,
 		&product.Price,
@@ -165,12 +166,12 @@ func GetProductById(pool *pgxpool.Pool, id string) (*models.Product, error) {
 	return &product, err
 }
 
-func GetAllProducts(pool *pgxpool.Pool) ([]models.Product, error) {
+func GetAllProducts(pool *pgxpool.Pool, userID string) ([]models.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := `SELECT id, name, price, user_id, created_at, updated_at FROM products`
-	rows, err := pool.Query(ctx, query)
+	query := `SELECT id, name, price, user_id, created_at, updated_at FROM products WHERE user_id = $1`
+	rows, err := pool.Query(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
