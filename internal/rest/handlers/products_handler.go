@@ -29,7 +29,7 @@ func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userIDInterface, exists := c.Get("user_id")
 
-		if !exists{
+		if !exists {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
 			return
 		}
@@ -43,7 +43,7 @@ func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		product, err := repository.CreateProduct(pool, input.Name, input.Price, userID)
+		product, err := repository.CreateProduct(c.Request.Context(), pool, input.Name, input.Price, userID)
 		if err != nil {
 			if errors.Is(err, repository.ErrAlreadyExists) {
 				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -60,7 +60,7 @@ func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userIDInterface, exists := c.Get("user_id")
 
-		if !exists{
+		if !exists {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
 			return
 		}
@@ -74,7 +74,7 @@ func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		product, err := repository.GetProductById(pool, idStr, userID)
+		product, err := repository.GetProductById(c.Request.Context(), pool, idStr, userID)
 		if err != nil {
 			if errors.Is(err, repository.ErrDoesNotExist) {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -92,7 +92,7 @@ func DeleteProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userIDInterface, exists := c.Get("user_id")
 
-		if !exists{
+		if !exists {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
 			return
 		}
@@ -106,7 +106,7 @@ func DeleteProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		err = repository.DeleteProductById(pool, idStr, userID)
+		err = repository.DeleteProductById(c.Request.Context(), pool, idStr, userID)
 		if err != nil {
 			if errors.Is(err, repository.ErrDoesNotExist) {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -124,7 +124,7 @@ func PatchProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userIDInterface, exists := c.Get("user_id")
 
-		if !exists{
+		if !exists {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
 			return
 		}
@@ -158,7 +158,7 @@ func PatchProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			updates["price"] = *input.Price
 		}
 
-		product, err := repository.PatchProduct(pool, idStr, userID, updates)
+		product, err := repository.PatchProduct(c.Request.Context(), pool, idStr, userID, updates)
 		if err != nil {
 			if errors.Is(err, repository.ErrDoesNotExist) {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -175,13 +175,13 @@ func UpdateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userIDInterface, exists := c.Get("user_id")
 
-		if !exists{
+		if !exists {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
 			return
 		}
 
 		userID := userIDInterface.(string)
-		
+
 		idStr := c.Param("id")
 		_, err := uuid.Parse(idStr)
 		if err != nil {
@@ -196,7 +196,7 @@ func UpdateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		product, err := repository.UpdateProduct(pool, idStr, userID, input.Name, input.Price)
+		product, err := repository.UpdateProduct(c.Request.Context(), pool, idStr, userID, input.Name, input.Price)
 		if err != nil {
 			if errors.Is(err, repository.ErrDoesNotExist) {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -214,14 +214,14 @@ func GetAllProductsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userIDInterface, exists := c.Get("user_id")
 
-		if !exists{
+		if !exists {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
 			return
 		}
 
 		userID := userIDInterface.(string)
 
-		products, err := repository.GetAllProducts(pool, userID)
+		products, err := repository.GetAllProducts(c.Request.Context(), pool, userID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, products)
 			return

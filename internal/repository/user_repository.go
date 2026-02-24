@@ -8,8 +8,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func CreateUser(pool *pgxpool.Pool, user *models.User) (*models.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func CreateUser(ctx context.Context, pool *pgxpool.Pool, user *models.User) (*models.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	query := `
@@ -32,8 +32,8 @@ func CreateUser(pool *pgxpool.Pool, user *models.User) (*models.User, error) {
 	return &userBack, nil
 }
 
-func GetUserByEmail(pool *pgxpool.Pool, email string) (*models.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func GetUserByEmail(ctx context.Context, pool *pgxpool.Pool, email string) (*models.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	query := `
@@ -57,8 +57,8 @@ func GetUserByEmail(pool *pgxpool.Pool, email string) (*models.User, error) {
 	return &userBack, nil
 }
 
-func GetUserById(pool *pgxpool.Pool, id string) (*models.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func GetUserById(ctx context.Context, pool *pgxpool.Pool, id string) (*models.User, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	query := `

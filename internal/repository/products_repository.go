@@ -16,8 +16,8 @@ import (
 var ErrAlreadyExists = errors.New("product with this name and price already exists")
 var ErrDoesNotExist = errors.New("product with this id does not exist")
 
-func DeleteProductById(pool *pgxpool.Pool, productID string, userID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func DeleteProductById(ctx context.Context, pool *pgxpool.Pool, productID string, userID string) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	query := `
@@ -37,8 +37,8 @@ func DeleteProductById(pool *pgxpool.Pool, productID string, userID string) erro
 	return nil
 }
 
-func CreateProduct(pool *pgxpool.Pool, name string, price float64, userID string) (*models.Product, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func CreateProduct(ctx context.Context, pool *pgxpool.Pool, name string, price float64, userID string) (*models.Product, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	query := `
@@ -70,8 +70,8 @@ func CreateProduct(pool *pgxpool.Pool, name string, price float64, userID string
 	return &product, nil
 }
 
-func UpdateProduct(pool *pgxpool.Pool, productID string, userID string, name string, price float64) (*models.Product, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func UpdateProduct(ctx context.Context, pool *pgxpool.Pool, productID string, userID string, name string, price float64) (*models.Product, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	query := `
@@ -98,9 +98,16 @@ func UpdateProduct(pool *pgxpool.Pool, productID string, userID string, name str
 	return &product, nil
 }
 
-func PatchProduct(pool *pgxpool.Pool, productID string, userID string, updates map[string]interface{}) (*models.Product, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func PatchProduct(ctx context.Context, pool *pgxpool.Pool, productID string, userID string, updates map[string]interface{}) (*models.Product, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+
+	allowed := map[string]bool{"name": true, "price": true}
+	for col := range updates {
+		if !allowed[col] {
+			return nil, fmt.Errorf("invalid filed:%s", col)
+		}
+	}
 
 	queryParts := []string{}
 	dataValues := []interface{}{}
@@ -114,7 +121,7 @@ func PatchProduct(pool *pgxpool.Pool, productID string, userID string, updates m
 	}
 
 	setClause := strings.Join(queryParts, ", ")
-	query := fmt.Sprintf("UPDATE products SET %s WHERE id = $%d AND user_id = %d RETURNING id, name, price, user_id, created_at, updated_at", setClause, placeholderNumber, placeholderNumber+1)
+	query := fmt.Sprintf("UPDATE products SET %s WHERE id = $%d AND user_id = $%d RETURNING id, name, price, user_id, created_at, updated_at", setClause, placeholderNumber, placeholderNumber+1)
 	dataValues = append(dataValues, productID)
 	dataValues = append(dataValues, userID)
 
@@ -137,8 +144,8 @@ func PatchProduct(pool *pgxpool.Pool, productID string, userID string, updates m
 	return &product, nil
 }
 
-func GetProductById(pool *pgxpool.Pool, id string, userID string) (*models.Product, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func GetProductById(ctx context.Context, pool *pgxpool.Pool, id string, userID string) (*models.Product, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	query :=
@@ -166,8 +173,8 @@ func GetProductById(pool *pgxpool.Pool, id string, userID string) (*models.Produ
 	return &product, err
 }
 
-func GetAllProducts(pool *pgxpool.Pool, userID string) ([]models.Product, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+func GetAllProducts(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.Product, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	query := `SELECT id, name, price, user_id, created_at, updated_at FROM products WHERE user_id = $1`
