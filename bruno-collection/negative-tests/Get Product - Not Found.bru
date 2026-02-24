@@ -1,0 +1,25 @@
+meta {
+  name: Get Product - Not Found
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/products/:id
+  body: none
+  auth: none
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000000
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
+docs {
+  Ожидаемый результат: 404 {"error": "product with this id does not exist"}
+  Причина: errors.Is(err, ErrDoesNotExist) — pgx.ErrNoRows в репозитории
+  UUID валидный, но такого продукта нет в БД
+}

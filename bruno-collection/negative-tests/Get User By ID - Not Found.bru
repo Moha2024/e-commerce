@@ -1,0 +1,25 @@
+meta {
+  name: Get User By ID - Not Found
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/users/id/:id
+  body: none
+  auth: none
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000000
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
+docs {
+  Ожидаемый результат: 404 {"error": "user not found"}
+  Причина: errors.Is(err, ErrUserNotFound) — pgx.ErrNoRows в репозитории
+  UUID валидный, но такого пользователя нет в БД
+}

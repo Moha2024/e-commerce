@@ -1,0 +1,22 @@
+meta {
+  name: Register Test User
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "negative-test@example.com",
+    "password": "testpass123"
+  }
+}

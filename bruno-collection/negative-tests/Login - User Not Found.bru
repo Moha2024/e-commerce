@@ -1,0 +1,28 @@
+meta {
+  name: Login - User Not Found
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "doesnotexist@example.com",
+    "password": "testpass123"
+  }
+}
+
+docs {
+  Ожидаемый результат: 401 {"error": "Invalid credentials"}
+  Причина: errors.Is(err, ErrUserNotFound) — pgx.ErrNoRows в репозитории
+  Намеренно совпадает с "Login - Wrong Password" — нельзя раскрывать существует ли email
+}

@@ -1,0 +1,26 @@
+meta {
+  name: Register - Missing Fields
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/auth/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "new-user@example.com"
+  }
+}
+
+docs {
+  Ожидаемый результат: 400 {"error": "..."}
+  Причина: ShouldBindJSON — поле password помечено binding:"required"
+}

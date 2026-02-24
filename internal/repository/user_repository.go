@@ -3,10 +3,17 @@ package repository
 import (
 	"context"
 	"e-commerce/internal/domain/models"
+	"errors"
+	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+var ErrUserNotFound = errors.New("user not found")
+var ErrUserAlreadyExists = errors.New("user already exists")
 
 func CreateUser(ctx context.Context, pool *pgxpool.Pool, user *models.User) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -25,8 +32,14 @@ func CreateUser(ctx context.Context, pool *pgxpool.Pool, user *models.User) (*mo
 		&userBack.CreatedAt,
 	)
 
+	var pgErr *pgconn.PgError
+
 	if err != nil {
-		return nil, err
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, ErrUserAlreadyExists
+		}
+
+		return nil, fmt.Errorf("CreateUser: %w", err)
 	}
 
 	return &userBack, nil
@@ -51,7 +64,11 @@ func GetUserByEmail(ctx context.Context, pool *pgxpool.Pool, email string) (*mod
 		&userBack.CreatedAt,
 	)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+
+		return nil, fmt.Errorf("GetUserByEmail: %w", err)
 	}
 
 	return &userBack, nil
@@ -75,7 +92,11 @@ func GetUserById(ctx context.Context, pool *pgxpool.Pool, id string) (*models.Us
 		&userBack.CreatedAt,
 	)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+
+		return nil, fmt.Errorf("GetUserById: %w", err)
 	}
 
 	return &userBack, nil

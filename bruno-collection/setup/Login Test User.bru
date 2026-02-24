@@ -1,0 +1,27 @@
+meta {
+  name: Login Test User
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "negative-test@example.com",
+    "password": "testpass123"
+  }
+}
+
+script:post-response {
+  var token = res.getBody().token;
+  bru.setEnvVar("access_token", token);
+}

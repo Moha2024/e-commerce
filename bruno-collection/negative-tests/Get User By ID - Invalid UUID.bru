@@ -1,0 +1,24 @@
+meta {
+  name: Get User By ID - Invalid UUID
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/users/id/:id
+  body: none
+  auth: none
+}
+
+params:path {
+  id: not-a-valid-uuid
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
+docs {
+  Ожидаемый результат: 400 {"error": "Invalid UUID format"}
+  Причина: uuid.Parse() вернул ошибку — валидация до вызова репозитория
+}

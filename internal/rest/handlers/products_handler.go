@@ -3,9 +3,11 @@ package handlers
 import (
 	"e-commerce/internal/repository"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -30,7 +32,8 @@ func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		userIDInterface, exists := c.Get("user_id")
 
 		if !exists {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			log.Printf("[ERROR] CreateProductHandler: user_id not found in context")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
@@ -38,8 +41,13 @@ func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 		var input CreateProductRequest
 
-		if err := c.ShouldBindJSON(&input); err != nil { // подставляет совпадающие поля JSON в ProductRequest
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if err := c.ShouldBindJSON(&input); err != nil {
+			var ve validator.ValidationErrors
+			if errors.As(err, &ve) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": ve[0].Field() + " " + ve[0].Tag()})
+				return
+			}
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 			return
 		}
 
@@ -49,7 +57,8 @@ func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 				return
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			log.Printf("[ERROR] CreateProductHandler: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 		c.JSON(http.StatusCreated, product)
@@ -61,7 +70,8 @@ func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		userIDInterface, exists := c.Get("user_id")
 
 		if !exists {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			log.Printf("[ERROR] GetProductByIdHandler: user_id not found in context")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
@@ -80,7 +90,8 @@ func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 				return
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			log.Printf("[ERROR] GetProductByIdHandler: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
@@ -93,7 +104,8 @@ func DeleteProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		userIDInterface, exists := c.Get("user_id")
 
 		if !exists {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			log.Printf("[ERROR] DeleteProductByIdHandler: user_id not found in context")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
@@ -112,7 +124,8 @@ func DeleteProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 				return
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			log.Printf("[ERROR] DeleteProductByIdHandler: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
@@ -125,7 +138,8 @@ func PatchProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		userIDInterface, exists := c.Get("user_id")
 
 		if !exists {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			log.Printf("[ERROR] PatchProductHandler: user_id not found in context")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
@@ -139,9 +153,13 @@ func PatchProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		}
 
 		var input PatchProductRequest
-		err = c.ShouldBindJSON(&input)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed: " + err.Error()})
+		if err := c.ShouldBindJSON(&input); err != nil {
+			var ve validator.ValidationErrors
+			if errors.As(err, &ve) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": ve[0].Field() + " " + ve[0].Tag()})
+				return
+			}
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 			return
 		}
 
@@ -164,7 +182,8 @@ func PatchProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 				return
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			log.Printf("[ERROR] PatchProductHandler: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 		c.JSON(http.StatusOK, product)
@@ -176,7 +195,8 @@ func UpdateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		userIDInterface, exists := c.Get("user_id")
 
 		if !exists {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			log.Printf("[ERROR] UpdateProductHandler: user_id not found in context")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
@@ -190,9 +210,13 @@ func UpdateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		}
 
 		var input PutProductRequest
-		err = c.ShouldBindJSON(&input)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Validation failed: " + err.Error()})
+		if err := c.ShouldBindJSON(&input); err != nil {
+			var ve validator.ValidationErrors
+			if errors.As(err, &ve) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": ve[0].Field() + " " + ve[0].Tag()})
+				return
+			}
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 			return
 		}
 
@@ -202,7 +226,8 @@ func UpdateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 				return
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			log.Printf("[ERROR] UpdateProductHandler: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
@@ -215,7 +240,8 @@ func GetAllProductsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 		userIDInterface, exists := c.Get("user_id")
 
 		if !exists {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "user_id not found in context"})
+			log.Printf("[ERROR] GetAllProductsHandler: user_id not found in context")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 
@@ -223,12 +249,8 @@ func GetAllProductsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 		products, err := repository.GetAllProducts(c.Request.Context(), pool, userID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, products)
-			return
-		}
-
-		if products == nil {
-			c.JSON(http.StatusOK, products)
+			log.Printf("[ERROR] GetAllProductsHandler: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 

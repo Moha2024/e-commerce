@@ -1,0 +1,24 @@
+meta {
+  name: Get User By Email - Not Found
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/users/email/:email
+  body: none
+  auth: none
+}
+
+params:path {
+  email: nobody@example.com
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}
+
+docs {
+  Ожидаемый результат: 404 {"error": "user not found"}
+  Причина: errors.Is(err, ErrUserNotFound) — pgx.ErrNoRows в репозитории
+}

@@ -27,7 +27,7 @@ func DeleteProductById(ctx context.Context, pool *pgxpool.Pool, productID string
 
 	result, err := pool.Exec(ctx, query, productID, userID)
 	if err != nil {
-		return err
+		return fmt.Errorf("DeleteProductById: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
@@ -64,7 +64,7 @@ func CreateProduct(ctx context.Context, pool *pgxpool.Pool, name string, price f
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // unique violation
 			return nil, ErrAlreadyExists
 		}
-		return nil, err
+		return nil, fmt.Errorf("CreateProduct: %w", err)
 	}
 
 	return &product, nil
@@ -93,7 +93,7 @@ func UpdateProduct(ctx context.Context, pool *pgxpool.Pool, productID string, us
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrDoesNotExist
 		}
-		return nil, err
+		return nil, fmt.Errorf("UpdateProduct: %w", err)
 	}
 	return &product, nil
 }
@@ -105,7 +105,7 @@ func PatchProduct(ctx context.Context, pool *pgxpool.Pool, productID string, use
 	allowed := map[string]bool{"name": true, "price": true}
 	for col := range updates {
 		if !allowed[col] {
-			return nil, fmt.Errorf("invalid filed:%s", col)
+			return nil, fmt.Errorf("invalid field:%s", col)
 		}
 	}
 
@@ -139,7 +139,7 @@ func PatchProduct(ctx context.Context, pool *pgxpool.Pool, productID string, use
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrDoesNotExist
 		}
-		return nil, err
+		return nil, fmt.Errorf("PatchProduct: %w", err)
 	}
 	return &product, nil
 }
@@ -167,10 +167,10 @@ func GetProductById(ctx context.Context, pool *pgxpool.Pool, id string, userID s
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrDoesNotExist
 		}
-		return nil, err
+		return nil, fmt.Errorf("GetProductById: %w", err)
 	}
 
-	return &product, err
+	return &product, nil
 }
 
 func GetAllProducts(ctx context.Context, pool *pgxpool.Pool, userID string) ([]models.Product, error) {
@@ -180,7 +180,7 @@ func GetAllProducts(ctx context.Context, pool *pgxpool.Pool, userID string) ([]m
 	query := `SELECT id, name, price, user_id, created_at, updated_at FROM products WHERE user_id = $1`
 	rows, err := pool.Query(ctx, query, userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetAllProducts: %w", err)
 	}
 	defer rows.Close()
 
@@ -197,7 +197,7 @@ func GetAllProducts(ctx context.Context, pool *pgxpool.Pool, userID string) ([]m
 			&product.UpdatedAt,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("GetAllProducts: %w", err)
 		}
 		products = append(products, product)
 	}

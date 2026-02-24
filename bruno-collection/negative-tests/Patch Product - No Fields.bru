@@ -1,0 +1,29 @@
+meta {
+  name: Patch Product - No Fields
+  type: http
+  seq: 14
+}
+
+patch {
+  url: {{baseUrl}}/products/:id
+  body: json
+  auth: none
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000000
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{access_token}}
+}
+
+body:json {
+  {}
+}
+
+docs {
+  Ожидаемый результат: 422 {"error": "at least one field is required"}
+  Причина: input.Name == nil && input.Price == nil — валидация в хендлере
+}

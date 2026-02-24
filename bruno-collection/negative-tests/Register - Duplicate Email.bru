@@ -1,0 +1,27 @@
+meta {
+  name: Register - Duplicate Email
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "negative-test@example.com",
+    "password": "testpass123"
+  }
+}
+
+docs {
+  Ожидаемый результат: 400 {"error": "Email already registered"}
+  Причина: ErrUserAlreadyExists — pgErr.Code == "23505" (unique violation)
+}

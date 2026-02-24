@@ -1,0 +1,27 @@
+meta {
+  name: Create Product - Missing Fields
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/products
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{access_token}}
+}
+
+body:json {
+  {
+    "name": "Smartphone"
+  }
+}
+
+docs {
+  Ожидаемый результат: 400 {"error": "..."}
+  Причина: ShouldBindJSON — поле price помечено binding:"required,gt=0"
+}
