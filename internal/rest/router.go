@@ -12,7 +12,6 @@ import (
 
 func SetupRouter(pool *pgxpool.Pool, cfg *config.Config) *gin.Engine {
 	var router *gin.Engine = gin.Default()
-
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message":  "Shop API is running",
