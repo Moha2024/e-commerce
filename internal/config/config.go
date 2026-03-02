@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -32,6 +33,10 @@ func Load() (*Config, error) {
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
 		port = "8080"
+	}
+
+	if os.Getenv("JWT_SECRET") == "" {
+		return nil, errors.New("JWT_SECRET environment variable is required")
 	}
 
 	return &Config{

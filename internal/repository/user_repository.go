@@ -15,7 +15,15 @@ import (
 var ErrUserNotFound = errors.New("user not found")
 var ErrUserAlreadyExists = errors.New("user already exists")
 
-func CreateUser(ctx context.Context, pool *pgxpool.Pool, user *models.User) (*models.User, error) {
+type pgUserRepo struct {
+	pool *pgxpool.Pool
+}
+
+func NewUserRepo(pool *pgxpool.Pool) UserRepo {
+	return &pgUserRepo{pool: pool}
+}
+
+func (p *pgUserRepo) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -26,7 +34,7 @@ func CreateUser(ctx context.Context, pool *pgxpool.Pool, user *models.User) (*mo
 	`
 	var userBack models.User
 
-	err := pool.QueryRow(ctx, query, user.Email, user.Password).Scan(
+	err := p.pool.QueryRow(ctx, query, user.Email, user.Password).Scan(
 		&userBack.ID,
 		&userBack.Email,
 		&userBack.CreatedAt,
@@ -45,7 +53,7 @@ func CreateUser(ctx context.Context, pool *pgxpool.Pool, user *models.User) (*mo
 	return &userBack, nil
 }
 
-func GetUserByEmail(ctx context.Context, pool *pgxpool.Pool, email string) (*models.User, error) {
+func (p *pgUserRepo) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -57,7 +65,7 @@ func GetUserByEmail(ctx context.Context, pool *pgxpool.Pool, email string) (*mod
 
 	var userBack models.User
 
-	err := pool.QueryRow(ctx, query, email).Scan(
+	err := p.pool.QueryRow(ctx, query, email).Scan(
 		&userBack.ID,
 		&userBack.Email,
 		&userBack.Password,
@@ -74,7 +82,7 @@ func GetUserByEmail(ctx context.Context, pool *pgxpool.Pool, email string) (*mod
 	return &userBack, nil
 }
 
-func GetUserById(ctx context.Context, pool *pgxpool.Pool, id string) (*models.User, error) {
+func (p *pgUserRepo) GetUserByID(ctx context.Context, id string) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -86,7 +94,7 @@ func GetUserById(ctx context.Context, pool *pgxpool.Pool, id string) (*models.Us
 
 	var userBack models.User
 
-	err := pool.QueryRow(ctx, query, id).Scan(
+	err := p.pool.QueryRow(ctx, query, id).Scan(
 		&userBack.ID,
 		&userBack.Email,
 		&userBack.CreatedAt,
@@ -96,7 +104,7 @@ func GetUserById(ctx context.Context, pool *pgxpool.Pool, id string) (*models.Us
 			return nil, ErrUserNotFound
 		}
 
-		return nil, fmt.Errorf("GetUserById: %w", err)
+		return nil, fmt.Errorf("GetUserByID: %w", err)
 	}
 
 	return &userBack, nil

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"e-commerce/internal/auth"
 	"e-commerce/internal/config"
 	"e-commerce/internal/domain/models"
 	"e-commerce/internal/repository"
@@ -11,8 +12,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -30,7 +29,13 @@ type LoginResponse struct {
 	Token string `json:"token"`
 }
 
-func LoginUserHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
+type UserResponse struct {
+	ID        string    `json:"id"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func LoginUserHandler(repo repository.UserRepo, cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var loginRequest LoginRequest
 		if err := c.ShouldBindJSON(&loginRequest); err != nil {
@@ -38,7 +43,7 @@ func LoginUserHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		user, err := repository.GetUserByEmail(c.Request.Context(), pool, loginRequest.Email)
+		user, err := repo.GetUserByEmail(c.Request.Context(), loginRequest.Email)
 		if err != nil {
 			if errors.Is(err, repository.ErrUserNotFound) {
 				xgin.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized", "Invalid credentials")
@@ -55,25 +60,18 @@ func LoginUserHandler(pool *pgxpool.Pool, cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		claims := jwt.MapClaims{
-			"user_id": user.ID,
-			"email":   user.Email,
-			"exp":     time.Now().Add(24 * time.Hour).Unix(),
-		}
-
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-		tokenString, err := token.SignedString([]byte(cfg.JWTSecret))
+		tokenString, err := auth.GenerateToken(cfg.JWTSecret, user.ID.String(), user.Email)
 		if err != nil {
-			log.Printf("[ERROR] LoginUserHandler: Failed to generate token: %v", err)
+			log.Printf("[ERROR] LoginUserHandler: %v", err)
 			xgin.InternalError(c)
 			return
 		}
+
 		c.JSON(http.StatusOK, LoginResponse{Token: tokenString})
 	}
 }
 
-func CreateUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+func CreateUserHandler(repo repository.UserRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var input RegisterRequest
 		if err := c.ShouldBindJSON(&input); err != nil {
@@ -81,7 +79,7 @@ func CreateUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		password_hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 
 		if err != nil {
 			log.Printf("[ERROR] CreateUserHandler: Failed to hash password: %v", err)
@@ -91,10 +89,10 @@ func CreateUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 
 		user := &models.User{
 			Email:    input.Email,
-			Password: string(password_hash),
+			Password: string(passwordHash),
 		}
 
-		createdUser, err := repository.CreateUser(c.Request.Context(), pool, user)
+		createdUser, err := repo.CreateUser(c.Request.Context(), user)
 		if err != nil {
 			if errors.Is(err, repository.ErrUserAlreadyExists) {
 				xgin.ErrorResponse(c, http.StatusConflict, "Conflict", "Email already registered")
@@ -105,15 +103,15 @@ func CreateUserHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusCreated, createdUser)
+		c.JSON(http.StatusCreated, UserResponse{ID: createdUser.ID.String(), Email: createdUser.Email, CreatedAt: createdUser.CreatedAt})
 	}
 }
 
-func GetUserByEmailHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+func GetUserByEmailHandler(repo repository.UserRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		emailStr := c.Param("email")
 
-		user, err := repository.GetUserByEmail(c.Request.Context(), pool, emailStr)
+		user, err := repo.GetUserByEmail(c.Request.Context(), emailStr)
 		if err != nil {
 			if errors.Is(err, repository.ErrUserNotFound) {
 				xgin.ErrorResponse(c, http.StatusNotFound, "Not found", "User with this email is not found")
@@ -124,18 +122,18 @@ func GetUserByEmailHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, user)
+		c.JSON(http.StatusOK, UserResponse{ID: user.ID.String(), Email: user.Email, CreatedAt: user.CreatedAt})
 	}
 }
 
-func GetUserByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+func GetUserByIdHandler(repo repository.UserRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr, ok := xgin.ParseUUID(c)
 		if !ok {
 			return
 		}
 
-		user, err := repository.GetUserById(c.Request.Context(), pool, idStr)
+		user, err := repo.GetUserByID(c.Request.Context(), idStr)
 		if err != nil {
 			if errors.Is(err, repository.ErrUserNotFound) {
 				xgin.ErrorResponse(c, http.StatusNotFound, "Not found", "User not found")
@@ -146,6 +144,6 @@ func GetUserByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, user)
+		c.JSON(http.StatusOK, UserResponse{ID: user.ID.String(), Email: user.Email, CreatedAt: user.CreatedAt})
 	}
 }

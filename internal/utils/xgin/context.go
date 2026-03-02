@@ -15,8 +15,12 @@ func GetUserID(c *gin.Context) (string, bool) {
 	if !exists {
 		return "", false
 	}
+	str, ok := value.(string)
+	if !ok {
+		return "", false
+	}
 
-	return value.(string), true
+	return str, true
 }
 
 func InternalError(c *gin.Context) {

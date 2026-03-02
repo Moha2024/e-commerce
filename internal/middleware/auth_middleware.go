@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -54,14 +53,7 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		if exp, ok := claims["exp"].(float64); ok {
-			expiration := time.Unix(int64(exp), 0)
-			if time.Now().After(expiration) {
-				xgin.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized", "Token has expired")
-				c.Abort()
-				return
-			}
-		}
+
 		c.Set("user_id", userID)
 		c.Next()
 	}

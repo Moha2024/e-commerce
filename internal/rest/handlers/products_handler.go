@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type ProductRequest struct {
@@ -21,7 +20,7 @@ type PatchProductRequest struct {
 	Price *float64 `json:"price" binding:"required_without_all=Name,omitempty,gt=0"`
 }
 
-func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+func CreateProductHandler(repo repository.ProductRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := xgin.GetUserID(c)
 
@@ -37,7 +36,7 @@ func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		product, err := repository.CreateProduct(c.Request.Context(), pool, input.Name, input.Price, userID)
+		product, err := repo.Create(c.Request.Context(), input.Name, input.Price, userID)
 		if err != nil {
 			if errors.Is(err, repository.ErrAlreadyExists) {
 				xgin.ErrorResponse(c, http.StatusConflict, "Conflict", "Product already exists")
@@ -51,7 +50,7 @@ func CreateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	}
 }
 
-func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+func GetProductByIdHandler(repo repository.ProductRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := xgin.GetUserID(c)
 
@@ -65,7 +64,7 @@ func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		product, err := repository.GetProductById(c.Request.Context(), pool, idStr, userID)
+		product, err := repo.GetByID(c.Request.Context(), idStr, userID)
 		if err != nil {
 			if errors.Is(err, repository.ErrDoesNotExist) {
 				xgin.ErrorResponse(c, http.StatusNotFound, "Not found", "Product not found")
@@ -80,7 +79,7 @@ func GetProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	}
 }
 
-func DeleteProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+func DeleteProductByIdHandler(repo repository.ProductRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := xgin.GetUserID(c)
 
@@ -94,7 +93,7 @@ func DeleteProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		err := repository.DeleteProductById(c.Request.Context(), pool, idStr, userID)
+		err := repo.Delete(c.Request.Context(), idStr, userID)
 		if err != nil {
 			if errors.Is(err, repository.ErrDoesNotExist) {
 				xgin.ErrorResponse(c, http.StatusNotFound, "Not found", "Product not found")
@@ -109,7 +108,7 @@ func DeleteProductByIdHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	}
 }
 
-func PatchProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+func PatchProductHandler(repo repository.ProductRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := xgin.GetUserID(c)
 
@@ -137,7 +136,7 @@ func PatchProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			updates["price"] = *input.Price
 		}
 
-		product, err := repository.PatchProduct(c.Request.Context(), pool, idStr, userID, updates)
+		product, err := repo.Patch(c.Request.Context(), idStr, userID, updates)
 		if err != nil {
 			if errors.Is(err, repository.ErrDoesNotExist) {
 				xgin.ErrorResponse(c, http.StatusNotFound, "Not found", "Product not found")
@@ -151,7 +150,7 @@ func PatchProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	}
 }
 
-func UpdateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+func UpdateProductHandler(repo repository.ProductRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := xgin.GetUserID(c)
 
@@ -171,7 +170,7 @@ func UpdateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		product, err := repository.UpdateProduct(c.Request.Context(), pool, idStr, userID, input.Name, input.Price)
+		product, err := repo.Update(c.Request.Context(), idStr, userID, input.Name, input.Price)
 		if err != nil {
 			if errors.Is(err, repository.ErrDoesNotExist) {
 				xgin.ErrorResponse(c, http.StatusNotFound, "Not found", "Product not found")
@@ -186,7 +185,7 @@ func UpdateProductHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 	}
 }
 
-func GetAllProductsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
+func GetAllProductsHandler(repo repository.ProductRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := xgin.GetUserID(c)
 
@@ -195,7 +194,7 @@ func GetAllProductsHandler(pool *pgxpool.Pool) gin.HandlerFunc {
 			return
 		}
 
-		products, err := repository.GetAllProducts(c.Request.Context(), pool, userID)
+		products, err := repo.GetAll(c.Request.Context(), userID)
 		if err != nil {
 			log.Printf("[ERROR] GetAllProductsHandler: %v", err)
 			xgin.InternalError(c)
