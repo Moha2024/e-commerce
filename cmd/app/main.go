@@ -4,6 +4,7 @@ import (
 	"context"
 	"e-commerce/internal/config"
 	"e-commerce/internal/database"
+	"e-commerce/internal/redis"
 	"e-commerce/internal/rest"
 	"log"
 	"net/http"
@@ -25,7 +26,15 @@ func main() {
 	}
 	defer pool.Close()
 
-	router := rest.SetupRouter(pool, cfg)
+	rdb, err := redis.NewClient(cfg.RedisAddr)
+	if err!=nil{
+		log.Fatal("redis:", err)
+	}
+	defer rdb.Close()
+
+	
+
+	router := rest.SetupRouter(pool, cfg, rdb)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

@@ -210,7 +210,7 @@ func (r *pgProductRepo) GetAll(ctx context.Context, userID string) ([]models.Pro
 		products = append(products, product)
 	}
 
-	if err := rows.Err(); err != nil{
+	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("GetAllProducts: %w", err)
 	}
 

@@ -13,6 +13,7 @@ type Config struct {
 	DSN       string
 	Port      string
 	JWTSecret string
+	RedisAddr string
 }
 
 func Load() (*Config, error) {
@@ -20,6 +21,8 @@ func Load() (*Config, error) {
 	if err != nil {
 		log.Println(".env file not found")
 	}
+
+	redisAddr := os.Getenv("REDIS_ADDR")
 
 	dsn := fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
@@ -43,5 +46,6 @@ func Load() (*Config, error) {
 		DSN:       dsn,
 		Port:      port,
 		JWTSecret: os.Getenv("JWT_SECRET"),
+		RedisAddr: redisAddr,
 	}, nil
 }

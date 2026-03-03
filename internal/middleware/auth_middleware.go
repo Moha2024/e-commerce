@@ -2,8 +2,10 @@ package middleware
 
 import (
 	"e-commerce/internal/config"
+	"e-commerce/internal/repository"
 	"e-commerce/internal/utils/xgin"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -11,7 +13,7 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
+func AuthMiddleware(cfg *config.Config, blacklist *repository.Blacklist) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 
@@ -54,7 +56,28 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
+		jti, ok := claims["jti"].(string)
+		if !ok {
+			xgin.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized", "invalid token ID")
+			c.Abort()
+			return
+		}
+
 		c.Set("user_id", userID)
+		c.Set("jti", jti)
+		revoked, err := blacklist.IsRevoked(c.Request.Context(), jti)
+		if err != nil {
+			log.Printf("[ERROR] AuthMiddleware: %v", err)
+			xgin.InternalError(c)
+			c.Abort()
+			return
+		}
+		if revoked {
+			xgin.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized", "Token has been revoked")
+			c.Abort()
+			return
+		}
+		c.Set("exp", claims["exp"])
 		c.Next()
 	}
 

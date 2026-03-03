@@ -71,6 +71,31 @@ func LoginUserHandler(repo repository.UserRepo, cfg *config.Config) gin.HandlerF
 	}
 }
 
+func LogoutHandler(blacklist *repository.Blacklist) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		jti, ok := c.Get("jti")
+		if !ok {
+			log.Printf("[ERROR]: LogoutHandler")
+			xgin.InternalError(c)
+			return
+		}
+		exp, ok := c.Get("exp")
+		if !ok {
+			log.Printf("[ERROR]: LogoutHandler")
+			xgin.InternalError(c)
+			return
+		}
+		leftTTL := time.Until(time.Unix(int64(exp.(float64)), 0))
+		err := blacklist.Revoke(c.Request.Context(), jti.(string), leftTTL)
+		if err != nil {
+			log.Printf("[ERROR] LogoutHandler: %v", err)
+			xgin.InternalError(c)
+			return
+		}
+		c.JSON(http.StatusOK, nil)
+	}
+}
+
 func CreateUserHandler(repo repository.UserRepo) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var input RegisterRequest

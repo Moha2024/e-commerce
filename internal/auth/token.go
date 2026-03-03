@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 )
 
 const tokenTTL = 24 * time.Hour
@@ -14,6 +15,7 @@ func GenerateToken(secret, userID, email string) (string, error) {
 		"user_id": userID,
 		"email":   email,
 		"exp":     time.Now().Add(tokenTTL).Unix(),
+		"jti":     uuid.New().String(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

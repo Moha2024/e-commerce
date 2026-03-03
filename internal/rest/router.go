@@ -9,12 +9,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
-func SetupRouter(pool *pgxpool.Pool, cfg *config.Config) *gin.Engine {
+func SetupRouter(pool *pgxpool.Pool, cfg *config.Config, rdb *redis.Client) *gin.Engine {
 	router := gin.Default()
 	productRepo := repository.NewProductRepo(pool)
 	userRepo := repository.NewUserRepo(pool)
+	blacklist := repository.NewTokenBlacklist(rdb)
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message":  "Shop API is running",
@@ -23,13 +25,15 @@ func SetupRouter(pool *pgxpool.Pool, cfg *config.Config) *gin.Engine {
 		})
 	})
 
-	router.POST("/auth/register", handlers.CreateUserHandler(userRepo))
-	router.POST("/auth/login", handlers.LoginUserHandler(userRepo, cfg))
-
 	products := router.Group("/products")
 	users := router.Group("/users")
-	products.Use(middleware.AuthMiddleware(cfg))
-	users.Use(middleware.AuthMiddleware(cfg))
+	products.Use(middleware.AuthMiddleware(cfg, blacklist))
+	users.Use(middleware.AuthMiddleware(cfg, blacklist))
+	authGroup := router.Group("/auth")
+	
+	authGroup.POST("/register", handlers.CreateUserHandler(userRepo))
+	authGroup.POST("/login", handlers.LoginUserHandler(userRepo, cfg))
+	authGroup.POST("/logout", middleware.AuthMiddleware(cfg, blacklist), handlers.LogoutHandler(blacklist))
 
 	products.POST("", handlers.CreateProductHandler(productRepo))
 	products.GET("/:id", handlers.GetProductByIdHandler(productRepo))
