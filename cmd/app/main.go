@@ -5,7 +5,9 @@ import (
 	"e-commerce/internal/config"
 	"e-commerce/internal/database"
 	"e-commerce/internal/redis"
+	"e-commerce/internal/repository"
 	"e-commerce/internal/rest"
+	"e-commerce/internal/service"
 	"log"
 	"net/http"
 	"os"
@@ -32,7 +34,12 @@ func main() {
 	}
 	defer rdb.Close()
 
-	router := rest.SetupRouter(pool, cfg, rdb)
+	productRepo := repository.NewProductRepo(pool)
+	userRepo := repository.NewUserRepo(pool)
+	blacklist := repository.NewTokenBlacklist(rdb)
+	userService := service.NewUserService(userRepo, cfg.JWTSecret)
+
+	router := rest.SetupRouter(productRepo, userRepo, userService, blacklist, cfg)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

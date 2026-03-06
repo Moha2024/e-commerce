@@ -9,16 +9,16 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
 )
 
-func SetupRouter(pool *pgxpool.Pool, cfg *config.Config, rdb *redis.Client) *gin.Engine {
+func SetupRouter(
+	productRepo repository.ProductRepo,
+	userRepo    repository.UserRepo,
+	userService *service.UserService,
+	blacklist   *repository.Blacklist,
+	cfg         *config.Config,
+) *gin.Engine {
 	router := gin.Default()
-	productRepo := repository.NewProductRepo(pool)
-	userRepo := repository.NewUserRepo(pool)
-	blacklist := repository.NewTokenBlacklist(rdb)
-	userService := service.NewUserService(userRepo, cfg.JWTSecret)
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message":  "Shop API is running",
