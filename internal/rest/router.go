@@ -5,6 +5,7 @@ import (
 	"e-commerce/internal/middleware"
 	"e-commerce/internal/repository"
 	"e-commerce/internal/rest/handlers"
+	"e-commerce/internal/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,6 +18,7 @@ func SetupRouter(pool *pgxpool.Pool, cfg *config.Config, rdb *redis.Client) *gin
 	productRepo := repository.NewProductRepo(pool)
 	userRepo := repository.NewUserRepo(pool)
 	blacklist := repository.NewTokenBlacklist(rdb)
+	userService := service.NewUserService(userRepo, cfg.JWTSecret)
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message":  "Shop API is running",
@@ -30,9 +32,9 @@ func SetupRouter(pool *pgxpool.Pool, cfg *config.Config, rdb *redis.Client) *gin
 	products.Use(middleware.AuthMiddleware(cfg, blacklist))
 	users.Use(middleware.AuthMiddleware(cfg, blacklist))
 	authGroup := router.Group("/auth")
-	
-	authGroup.POST("/register", handlers.CreateUserHandler(userRepo))
-	authGroup.POST("/login", handlers.LoginUserHandler(userRepo, cfg))
+
+	authGroup.POST("/register", handlers.CreateUserHandler(userService))
+	authGroup.POST("/login", handlers.LoginUserHandler(userService))
 	authGroup.POST("/logout", middleware.AuthMiddleware(cfg, blacklist), handlers.LogoutHandler(blacklist))
 
 	products.POST("", handlers.CreateProductHandler(productRepo))

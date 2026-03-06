@@ -5,7 +5,6 @@ import (
 	"e-commerce/internal/domain/models"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -106,35 +105,37 @@ func (r *pgProductRepo) Update(ctx context.Context, productID string, userID str
 	return &product, nil
 }
 
-func (r *pgProductRepo) Patch(ctx context.Context, productID string, userID string, updates map[string]interface{}) (*models.Product, error) {
+func (r *pgProductRepo) Patch(ctx context.Context, productID string, userID string, updates map[string]any) (*models.Product, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	allowed := map[string]bool{"name": true, "price": true}
-	for col := range updates {
-		if !allowed[col] {
-			return nil, fmt.Errorf("invalid field: %s", col)
-		}
+	name, hasName := updates["name"]
+	price, hasPrice := updates["price"]
+
+	if !hasName && !hasPrice {
+		return nil, fmt.Errorf("PatchProduct: no  fields to update")
 	}
 
-	queryParts := []string{}
-	dataValues := []interface{}{}
-	placeholderNumber := 1
+	var query string
+	var args []any
 
-	for col, val := range updates {
-		part := fmt.Sprintf("%s = $%d", col, placeholderNumber)
-		queryParts = append(queryParts, part)
-		dataValues = append(dataValues, val)
-		placeholderNumber++
+	switch {
+	case hasName && hasPrice:
+		query = `UPDATE products SET name = $1, price = $2 WHERE id = $3 AND user_id = $4
+                 RETURNING id, name, price, user_id, created_at, updated_at`
+		args = []any{name, price, productID, userID}
+	case hasName:
+		query = `UPDATE products SET name = $1 WHERE id = $2 AND user_id = $3
+                 RETURNING id, name, price, user_id, created_at, updated_at`
+		args = []any{name, productID, userID}
+	case hasPrice:
+		query = `UPDATE products SET price = $1 WHERE id = $2 AND user_id = $3
+                 RETURNING id, name, price, user_id, created_at, updated_at`
+		args = []any{price, productID, userID}
 	}
-
-	setClause := strings.Join(queryParts, ", ")
-	query := fmt.Sprintf("UPDATE products SET %s WHERE id = $%d AND user_id = $%d RETURNING id, name, price, user_id, created_at, updated_at", setClause, placeholderNumber, placeholderNumber+1)
-	dataValues = append(dataValues, productID)
-	dataValues = append(dataValues, userID)
 
 	var product models.Product
-	err := r.pool.QueryRow(ctx, query, dataValues...).Scan(
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
 		&product.ID,
 		&product.Name,
 		&product.Price,

@@ -27,12 +27,10 @@ func main() {
 	defer pool.Close()
 
 	rdb, err := redis.NewClient(cfg.RedisAddr)
-	if err!=nil{
+	if err != nil {
 		log.Fatal("redis:", err)
 	}
 	defer rdb.Close()
-
-	
 
 	router := rest.SetupRouter(pool, cfg, rdb)
 

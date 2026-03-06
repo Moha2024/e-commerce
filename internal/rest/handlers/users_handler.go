@@ -1,10 +1,8 @@
 package handlers
 
 import (
-	"e-commerce/internal/auth"
-	"e-commerce/internal/config"
-	"e-commerce/internal/domain/models"
 	"e-commerce/internal/repository"
+	"e-commerce/internal/service"
 	"e-commerce/internal/utils/xgin"
 	"errors"
 	"log"
@@ -12,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type RegisterRequest struct {
@@ -35,15 +32,14 @@ type UserResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func LoginUserHandler(repo repository.UserRepo, cfg *config.Config) gin.HandlerFunc {
+func LoginUserHandler(svc *service.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var loginRequest LoginRequest
-		if err := c.ShouldBindJSON(&loginRequest); err != nil {
+		var req LoginRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
 			xgin.BindError(c, err)
 			return
 		}
-
-		user, err := repo.GetUserByEmail(c.Request.Context(), loginRequest.Email)
+		token, err := svc.Login(c.Request.Context(), req.Email, req.Password)
 		if err != nil {
 			if errors.Is(err, repository.ErrUserNotFound) {
 				xgin.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized", "Invalid credentials")
@@ -53,21 +49,7 @@ func LoginUserHandler(repo repository.UserRepo, cfg *config.Config) gin.HandlerF
 			xgin.InternalError(c)
 			return
 		}
-
-		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginRequest.Password))
-		if err != nil {
-			xgin.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized", "Invalid credentials")
-			return
-		}
-
-		tokenString, err := auth.GenerateToken(cfg.JWTSecret, user.ID.String(), user.Email)
-		if err != nil {
-			log.Printf("[ERROR] LoginUserHandler: %v", err)
-			xgin.InternalError(c)
-			return
-		}
-
-		c.JSON(http.StatusOK, LoginResponse{Token: tokenString})
+		c.JSON(http.StatusOK, LoginResponse{Token: token})
 	}
 }
 
@@ -92,11 +74,11 @@ func LogoutHandler(blacklist *repository.Blacklist) gin.HandlerFunc {
 			xgin.InternalError(c)
 			return
 		}
-		c.JSON(http.StatusOK, nil)
+		c.Status(http.StatusNoContent)
 	}
 }
 
-func CreateUserHandler(repo repository.UserRepo) gin.HandlerFunc {
+func CreateUserHandler(svc *service.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var input RegisterRequest
 		if err := c.ShouldBindJSON(&input); err != nil {
@@ -104,20 +86,7 @@ func CreateUserHandler(repo repository.UserRepo) gin.HandlerFunc {
 			return
 		}
 
-		passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
-
-		if err != nil {
-			log.Printf("[ERROR] CreateUserHandler: Failed to hash password: %v", err)
-			xgin.InternalError(c)
-			return
-		}
-
-		user := &models.User{
-			Email:    input.Email,
-			Password: string(passwordHash),
-		}
-
-		createdUser, err := repo.CreateUser(c.Request.Context(), user)
+		user, err := svc.Register(c.Request.Context(), input.Email, input.Password)
 		if err != nil {
 			if errors.Is(err, repository.ErrUserAlreadyExists) {
 				xgin.ErrorResponse(c, http.StatusConflict, "Conflict", "Email already registered")
@@ -128,7 +97,7 @@ func CreateUserHandler(repo repository.UserRepo) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusCreated, UserResponse{ID: createdUser.ID.String(), Email: createdUser.Email, CreatedAt: createdUser.CreatedAt})
+		c.JSON(http.StatusCreated, UserResponse{ID: user.ID.String(), Email: user.Email, CreatedAt: user.CreatedAt})
 	}
 }
 
@@ -144,6 +113,12 @@ func GetUserByEmailHandler(repo repository.UserRepo) gin.HandlerFunc {
 			}
 			log.Printf("[ERROR] GetUserByEmailHandler: %v", err)
 			xgin.InternalError(c)
+			return
+		}
+
+		requestingUserID, _ := xgin.GetUserID(c)
+		if user.ID.String() != requestingUserID {
+			xgin.ErrorResponse(c, http.StatusForbidden, "Forbidden", "Access denied")
 			return
 		}
 
@@ -166,6 +141,12 @@ func GetUserByIdHandler(repo repository.UserRepo) gin.HandlerFunc {
 			}
 			log.Printf("[ERROR] GetUserByIdHandler: %v", err)
 			xgin.InternalError(c)
+			return
+		}
+
+		requestingUserID, _ := xgin.GetUserID(c)
+		if user.ID.String() != requestingUserID {
+			xgin.ErrorResponse(c, http.StatusForbidden, "Forbidden", "Access denied")
 			return
 		}
 
