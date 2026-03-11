@@ -38,8 +38,8 @@ func main() {
 	userRepo := repository.NewUserRepo(pool)
 	blacklist := repository.NewTokenBlacklist(rdb)
 	userService := service.NewUserService(userRepo, cfg.JWTSecret)
-
-	router := rest.SetupRouter(productRepo, userRepo, userService, blacklist, cfg)
+	productService := service.NewProductService(productRepo)
+	router := rest.SetupRouter(userRepo, userService, productService, blacklist, cfg)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

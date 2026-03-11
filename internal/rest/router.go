@@ -12,11 +12,11 @@ import (
 )
 
 func SetupRouter(
-	productRepo repository.ProductRepo,
-	userRepo    repository.UserRepo,
+	userRepo repository.UserRepo,
 	userService *service.UserService,
-	blacklist   *repository.Blacklist,
-	cfg         *config.Config,
+	productService *service.ProductService,
+	blacklist *repository.Blacklist,
+	cfg *config.Config,
 ) *gin.Engine {
 	router := gin.Default()
 	router.GET("/", func(c *gin.Context) {
@@ -37,12 +37,12 @@ func SetupRouter(
 	authGroup.POST("/login", handlers.LoginUserHandler(userService))
 	authGroup.POST("/logout", middleware.AuthMiddleware(cfg, blacklist), handlers.LogoutHandler(blacklist))
 
-	products.POST("", handlers.CreateProductHandler(productRepo))
-	products.GET("/:id", handlers.GetProductByIdHandler(productRepo))
-	products.GET("", handlers.GetAllProductsHandler(productRepo))
-	products.PUT("/:id", handlers.UpdateProductHandler(productRepo))
-	products.PATCH("/:id", handlers.PatchProductHandler(productRepo))
-	products.DELETE("/:id", handlers.DeleteProductByIdHandler(productRepo))
+	products.POST("", handlers.CreateProductHandler(productService))
+	products.GET("/:id", handlers.GetProductByIdHandler(productService))
+	products.GET("", handlers.GetAllProductsHandler(productService))
+	products.PUT("/:id", handlers.UpdateProductHandler(productService))
+	products.PATCH("/:id", handlers.PatchProductHandler(productService))
+	products.DELETE("/:id", handlers.DeleteProductByIdHandler(productService))
 
 	users.GET("/id/:id", handlers.GetUserByIdHandler(userRepo))
 	users.GET("/email/:email", handlers.GetUserByEmailHandler(userRepo))
