@@ -12,7 +12,7 @@ import (
 )
 
 func SetupRouter(
-	userRepo repository.UserRepo,
+	userRepo *repository.PgUserRepo,
 	userService *service.UserService,
 	productService *service.ProductService,
 	blacklist *repository.Blacklist,

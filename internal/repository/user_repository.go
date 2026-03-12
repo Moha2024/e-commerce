@@ -15,15 +15,15 @@ import (
 var ErrUserNotFound = errors.New("user not found")
 var ErrUserAlreadyExists = errors.New("user already exists")
 
-type pgUserRepo struct {
+type PgUserRepo struct {
 	pool *pgxpool.Pool
 }
 
-func NewUserRepo(pool *pgxpool.Pool) UserRepo {
-	return &pgUserRepo{pool: pool}
+func NewUserRepo(pool *pgxpool.Pool) *PgUserRepo {
+	return &PgUserRepo{pool: pool}
 }
 
-func (p *pgUserRepo) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (p *PgUserRepo) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -53,7 +53,7 @@ func (p *pgUserRepo) CreateUser(ctx context.Context, user *models.User) (*models
 	return &userBack, nil
 }
 
-func (p *pgUserRepo) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+func (p *PgUserRepo) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -82,7 +82,7 @@ func (p *pgUserRepo) GetUserByEmail(ctx context.Context, email string) (*models.
 	return &userBack, nil
 }
 
-func (p *pgUserRepo) GetUserByID(ctx context.Context, id string) (*models.User, error) {
+func (p *PgUserRepo) GetUserByID(ctx context.Context, id string) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 

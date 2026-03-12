@@ -11,12 +11,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type userRepo interface {
+    CreateUser(ctx context.Context, user *models.User) (*models.User, error)
+    GetUserByEmail(ctx context.Context, email string) (*models.User, error)
+    GetUserByID(ctx context.Context, id string) (*models.User, error)
+
+}
+
 type UserService struct {
-	repo      repository.UserRepo
+	repo      userRepo
 	jwtSecret string
 }
 
-func NewUserService(repo repository.UserRepo, jwtSecret string) *UserService {
+func NewUserService(repo userRepo, jwtSecret string) *UserService {
 	return &UserService{repo: repo, jwtSecret: jwtSecret}
 }
 

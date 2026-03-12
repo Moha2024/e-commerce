@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"e-commerce/internal/repository"
-	"e-commerce/internal/service"
 	"e-commerce/internal/utils/xgin"
 	"errors"
 	"log"
@@ -32,7 +31,7 @@ type UserResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func LoginUserHandler(svc *service.UserService) gin.HandlerFunc {
+func LoginUserHandler(svc userService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req LoginRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -78,7 +77,7 @@ func LogoutHandler(blacklist *repository.Blacklist) gin.HandlerFunc {
 	}
 }
 
-func CreateUserHandler(svc *service.UserService) gin.HandlerFunc {
+func CreateUserHandler(svc userService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var input RegisterRequest
 		if err := c.ShouldBindJSON(&input); err != nil {
@@ -101,7 +100,7 @@ func CreateUserHandler(svc *service.UserService) gin.HandlerFunc {
 	}
 }
 
-func GetUserByEmailHandler(repo repository.UserRepo) gin.HandlerFunc {
+func GetUserByEmailHandler(repo userQuerier) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		emailStr := c.Param("email")
 
@@ -126,7 +125,7 @@ func GetUserByEmailHandler(repo repository.UserRepo) gin.HandlerFunc {
 	}
 }
 
-func GetUserByIdHandler(repo repository.UserRepo) gin.HandlerFunc {
+func GetUserByIdHandler(repo userQuerier) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr, ok := xgin.ParseUUID(c)
 		if !ok {
@@ -134,16 +133,15 @@ func GetUserByIdHandler(repo repository.UserRepo) gin.HandlerFunc {
 		}
 
 		user, err := repo.GetUserByID(c.Request.Context(), idStr)
-		if err != nil {
-			if errors.Is(err, repository.ErrUserNotFound) {
-				xgin.ErrorResponse(c, http.StatusNotFound, "Not found", "User not found")
-				return
-			}
-			log.Printf("[ERROR] GetUserByIdHandler: %v", err)
-			xgin.InternalError(c)
-			return
-		}
-
+		if err != nil{
+			 if errors.Is(err, repository.ErrUserNotFound) {
+                xgin.ErrorResponse(c, http.StatusNotFound, "Not found", "User not found")
+                return
+            }
+            log.Printf("[ERROR] GetUserByIdHandler: %v", err)
+            xgin.InternalError(c)
+            return
+        }
 		requestingUserID, _ := xgin.GetUserID(c)
 		if user.ID.String() != requestingUserID {
 			xgin.ErrorResponse(c, http.StatusForbidden, "Forbidden", "Access denied")

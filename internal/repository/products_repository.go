@@ -15,15 +15,15 @@ import (
 var ErrAlreadyExists = errors.New("product with this name and price already exists")
 var ErrDoesNotExist = errors.New("product with this id does not exist")
 
-type pgProductRepo struct {
+type PgProductRepo struct {
 	pool *pgxpool.Pool
 }
 
-func NewProductRepo(pool *pgxpool.Pool) ProductRepo {
-	return &pgProductRepo{pool: pool}
+func NewProductRepo(pool *pgxpool.Pool) *PgProductRepo {
+	return &PgProductRepo{pool: pool}
 }
 
-func (r *pgProductRepo) Delete(ctx context.Context, productID string, userID string) error {
+func (r *PgProductRepo) Delete(ctx context.Context, productID string, userID string) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -44,7 +44,7 @@ func (r *pgProductRepo) Delete(ctx context.Context, productID string, userID str
 	return nil
 }
 
-func (r *pgProductRepo) Create(ctx context.Context, name string, price float64, userID string) (*models.Product, error) {
+func (r *PgProductRepo) Create(ctx context.Context, name string, price float64, userID string) (*models.Product, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -77,7 +77,7 @@ func (r *pgProductRepo) Create(ctx context.Context, name string, price float64, 
 	return &product, nil
 }
 
-func (r *pgProductRepo) Update(ctx context.Context, productID string, userID string, name string, price float64) (*models.Product, error) {
+func (r *PgProductRepo) Update(ctx context.Context, productID string, userID string, name string, price float64) (*models.Product, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -105,7 +105,7 @@ func (r *pgProductRepo) Update(ctx context.Context, productID string, userID str
 	return &product, nil
 }
 
-func (r *pgProductRepo) Patch(ctx context.Context, productID string, userID string, updates map[string]any) (*models.Product, error) {
+func (r *PgProductRepo) Patch(ctx context.Context, productID string, userID string, updates map[string]any) (*models.Product, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -153,7 +153,7 @@ func (r *pgProductRepo) Patch(ctx context.Context, productID string, userID stri
 	return &product, nil
 }
 
-func (r *pgProductRepo) GetByID(ctx context.Context, id string, userID string) (*models.Product, error) {
+func (r *PgProductRepo) GetByID(ctx context.Context, id string, userID string) (*models.Product, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -182,7 +182,7 @@ func (r *pgProductRepo) GetByID(ctx context.Context, id string, userID string) (
 	return &product, nil
 }
 
-func (r *pgProductRepo) GetAll(ctx context.Context, userID string) ([]models.Product, error) {
+func (r *PgProductRepo) GetAll(ctx context.Context, userID string) ([]models.Product, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 

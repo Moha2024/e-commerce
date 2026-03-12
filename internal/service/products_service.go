@@ -3,14 +3,22 @@ package service
 import (
 	"context"
 	"e-commerce/internal/domain/models"
-	"e-commerce/internal/repository"
 )
 
-type ProductService struct {
-	repo repository.ProductRepo
+type productRepo interface {
+    Create(ctx context.Context, name string, price float64, userID string) (*models.Product, error)
+    GetByID(ctx context.Context, id, userID string) (*models.Product, error)
+    GetAll(ctx context.Context, userID string) ([]models.Product, error)
+    Update(ctx context.Context, id, userID, name string, price float64) (*models.Product, error)
+    Patch(ctx context.Context, id, userID string, updates map[string]any) (*models.Product, error)
+    Delete(ctx context.Context, id, userID string) error
 }
 
-func NewProductService(repo repository.ProductRepo) *ProductService {
+type ProductService struct {
+	repo productRepo
+}
+
+func NewProductService(repo productRepo) *ProductService {
 	return &ProductService{repo: repo}
 }
 

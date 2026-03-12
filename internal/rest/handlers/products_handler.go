@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"e-commerce/internal/repository"
-	"e-commerce/internal/service"
 	"e-commerce/internal/utils/xgin"
 	"errors"
 	"log"
@@ -21,7 +20,8 @@ type PatchProductRequest struct {
 	Price *float64 `json:"price" binding:"required_without_all=Name,omitempty,gt=0"`
 }
 
-func CreateProductHandler(svc *service.ProductService) gin.HandlerFunc {
+
+func CreateProductHandler(svc productService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := xgin.GetUserID(c)
 
@@ -51,7 +51,7 @@ func CreateProductHandler(svc *service.ProductService) gin.HandlerFunc {
 	}
 }
 
-func GetProductByIdHandler(svc *service.ProductService) gin.HandlerFunc {
+func GetProductByIdHandler(svc productService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := xgin.GetUserID(c)
 
@@ -80,7 +80,7 @@ func GetProductByIdHandler(svc *service.ProductService) gin.HandlerFunc {
 	}
 }
 
-func DeleteProductByIdHandler(svc *service.ProductService) gin.HandlerFunc {
+func DeleteProductByIdHandler(svc productService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := xgin.GetUserID(c)
 
@@ -109,7 +109,7 @@ func DeleteProductByIdHandler(svc *service.ProductService) gin.HandlerFunc {
 	}
 }
 
-func PatchProductHandler(svc *service.ProductService) gin.HandlerFunc {
+func PatchProductHandler(svc productService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := xgin.GetUserID(c)
 
@@ -151,7 +151,7 @@ func PatchProductHandler(svc *service.ProductService) gin.HandlerFunc {
 	}
 }
 
-func UpdateProductHandler(svc *service.ProductService) gin.HandlerFunc {
+func UpdateProductHandler(svc productService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := xgin.GetUserID(c)
 
@@ -186,7 +186,7 @@ func UpdateProductHandler(svc *service.ProductService) gin.HandlerFunc {
 	}
 }
 
-func GetAllProductsHandler(svc *service.ProductService) gin.HandlerFunc {
+func GetAllProductsHandler(svc productService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := xgin.GetUserID(c)
 
